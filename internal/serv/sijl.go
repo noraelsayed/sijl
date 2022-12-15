@@ -22,8 +22,10 @@ type Sijl struct {
 }
 
 // Login implements psijl.SijlServer
-func (s *Sijl) Login(ctx context.Context, req *psijl.LoginRequest) (res *psijl.LoginResponse, err error) {
+func (s *Sijl) Login(ctx context.Context, req *psijl.LoginRequest) (*psijl.LoginResponse, error) {
+	res := psijl.LoginResponse{}
 	stmt, err := s.DB.Prepare(`IF HASHBYTES('SHA2_512', ?) = (
+
 SELECT hash
 FROM SIJL.USERS
 WHERE username = ?
@@ -47,18 +49,19 @@ END
 			log.Fatal(err)
 		}
 		res.Token = tkn.Token
-		return res, nil
+		return &res, nil
 	}
 	res.Error = psijl.Err_WrongPassword
-	return
+	return &res, err
 
 }
 
 // Register implements psijl.SijlServer
-func (s *Sijl) Register(ctx context.Context, req *psijl.NewUserRequest) (res *psijl.LoginResponse, err error) {
+func (s *Sijl) Register(ctx context.Context, req *psijl.NewUserRequest) (*psijl.LoginResponse, error) {
+	res := psijl.LoginResponse{}
 	res.Error = ValidateRegister(req, s.DB)
 	if res.Error != psijl.Err_Ok {
-		return
+		return &res, nil
 	}
 	stmt, err := s.DB.Prepare(`INSERT INTO SIJL.USERS(hash, first_name, last_name, email,username,age)
 VALUES (HashBytes('SHA2_512', ?),?,?,?,?,?)`)
@@ -74,7 +77,7 @@ VALUES (HashBytes('SHA2_512', ?),?,?,?,?,?)`)
 		log.Fatal(err)
 	}
 	res.Token = tkn.Token
-	return
+	return &res, err
 }
 
 func StartSijlServer() error {
