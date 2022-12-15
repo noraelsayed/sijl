@@ -3,6 +3,8 @@ package mamar
 import (
 	"context"
 	"database/sql"
+	"log"
+
 	proto "github.com/CSC354/sijl/pmamar"
 	_ "github.com/microsoft/go-mssqldb"
 	"google.golang.org/grpc"
@@ -12,6 +14,7 @@ import (
 func NewMamarStub() (stub proto.MamarClient, conn *grpc.ClientConn, err error) {
 	conn, err = grpc.Dial("mamar:8000", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
+		log.Print(err)
 		return
 	}
 	stub = proto.NewMamarClient(conn)
@@ -22,11 +25,13 @@ func NewMamarStub() (stub proto.MamarClient, conn *grpc.ClientConn, err error) {
 func MamarGetPort(service string) (port *proto.Port, err error) {
 	mamr, conn, err := NewMamarStub()
 	if err != nil {
+		log.Print(err)
 		return
 	}
 	defer conn.Close()
 	port, err = mamr.GetPort(context.Background(), &proto.Service{Name: "sijl_db"})
 	if err != nil {
+		log.Print(err)
 		return
 	}
 	return
@@ -36,14 +41,17 @@ func MamarGetPort(service string) (port *proto.Port, err error) {
 func ConnectDB(dbName string) (db *sql.DB, err error) {
 	connectionStr, err := MamarGetPort(dbName)
 	if err != nil {
+		log.Print(err)
 		return
 	}
 	db, err = sql.Open("sqlserver", connectionStr.Address)
 	if err != nil {
+		log.Print(err)
 		return
 	}
 	err = db.PingContext(context.Background())
 	if err != nil {
+		log.Print(err)
 		return
 	}
 	return
