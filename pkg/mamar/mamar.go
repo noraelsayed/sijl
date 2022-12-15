@@ -29,7 +29,7 @@ func MamarGetPort(service string) (port *proto.Port, err error) {
 		return
 	}
 	defer conn.Close()
-	port, err = mamr.GetPort(context.Background(), &proto.Service{Name: "sijl_db"})
+	port, err = mamr.GetPort(context.Background(), &proto.Service{Name: service})
 	if err != nil {
 		log.Print(err)
 		return
