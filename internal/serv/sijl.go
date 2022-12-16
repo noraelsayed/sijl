@@ -100,3 +100,6 @@ func StartSijlServer() error {
 	err = grpcServer.Serve(lis)
 	return err
 }
+
+// TODO organize prepared statements
+// TODO is it a good idea to generate hashes in the database side instead of here?
