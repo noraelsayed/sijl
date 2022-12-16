@@ -20,12 +20,12 @@ func ValidateRegister(req *proto.NewUserRequest, db *sql.DB) proto.Err {
 		return proto.Err_InvalidUsername
 	}
 
-	stmt, err := db.Prepare("SELECT * FROM SIJL.USERS WHERE username = ?")
+	stmt, err := db.Prepare("SELECT COUNT(*) FROM SIJL.USERS WHERE username = @username")
 	if err != nil {
 		log.Fatal(err)
 	}
 	var c int
-	err = stmt.QueryRow(req.Username).Scan(&c)
+	err = stmt.QueryRow(sql.Named("username", req.Username)).Scan(&c)
 
 	if c > 0 {
 		return proto.Err_AlreadyUsedUsername
