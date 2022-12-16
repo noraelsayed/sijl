@@ -24,25 +24,38 @@ type Sijl struct {
 // Login implements psijl.SijlServer
 func (s *Sijl) Login(ctx context.Context, req *psijl.LoginRequest) (*psijl.LoginResponse, error) {
 	res := psijl.LoginResponse{}
-	stmt, err := s.DB.Prepare(`IF HASHBYTES('SHA2_512', ?) = (
 
-SELECT hash
+	userStmt, err := s.DB.Prepare(`SELECT COUNT(*)
 FROM SIJL.USERS
-WHERE username = ?
-)
-BEGIN
-   Select 1
-END
-ELSE
-BEGIN
-   Select 0
-END
-`)
-	var valid int
-	err = stmt.QueryRow(req.Username, req.Password).Scan(&valid)
+WHERE username = @username`)
 	if err != nil {
 		log.Fatal(err)
 	}
+	var c int
+	err = userStmt.QueryRow(sql.Named("username", req.Username)).Scan(&c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if c == 0 {
+		res.Error = psijl.Err_WrongUsername
+		return &res, err
+	}
+
+	passStmt, err := s.DB.Prepare(`
+SELECT COUNT(*)
+FROM SIJL.USERS
+WHERE username = @username AND hash = HASHBYTES('SHA2_512', @password)
+`)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var valid int
+	err = passStmt.QueryRow(sql.Named("username", req.Username), sql.Named("password", req.Password)).Scan(&valid)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// generate token
 	if valid == 1 {
 		tkn, err := s.WathiqClient.GetToken(ctx, &pwathiq.TokenRequest{Username: req.Username})
 		if err != nil {
@@ -63,13 +76,17 @@ func (s *Sijl) Register(ctx context.Context, req *psijl.NewUserRequest) (*psijl.
 	if res.Error != psijl.Err_Ok {
 		return &res, nil
 	}
-	stmt, err := s.DB.Prepare(`INSERT INTO SIJL.USERS(hash, first_name, last_name, email,username,age)
-VALUES (HashBytes('SHA2_512', ?),?,?,?,?,?)`)
+	stmt, err := s.DB.Prepare(`INSERT INTO SIJL.USERS(hash, first_name, last_name,
+email,username,age) VALUES (HashBytes('SHA2_512', @hash ), @first_name , @last_name,
+@email , @username , @age )`)
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = stmt.Exec(req.Password, req.FirstName, req.LastName, req.Email, req.Username, req.Age)
+	q, err := stmt.Exec(sql.Named("hash", req.Password), sql.Named("first_name", req.FirstName),
+		sql.Named("last_name", req.LastName), sql.Named("email", req.Email),
+		sql.Named("username", req.Username), sql.Named("age", req.Age))
 	if err != nil {
+		log.Println(q)
 		log.Fatal(err)
 	}
 	tkn, err := s.WathiqClient.GetToken(ctx, &pwathiq.TokenRequest{Username: req.Username})
