@@ -4,3 +4,6 @@
 [submodule "protobufs"]
 	path = protobufs
 	url = https://github.com/CSC354/protobufs
+[submodule "imgs"]
+	path = imgs
+	url = https://github.com/avdosev/github_avatars_generator

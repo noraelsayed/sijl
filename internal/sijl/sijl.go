@@ -1,18 +1,16 @@
-package serv
+package sijl
 
 import (
 	"context"
 	"database/sql"
 	"log"
-	"net"
+	"os/exec"
 
-	"github.com/CSC354/sijl/pkg/mamar"
-	"github.com/CSC354/sijl/pkg/wathiq"
 	"github.com/CSC354/sijl/psijl"
 
+	"github.com/CSC354/sijl/pkg/stmts"
 	"github.com/CSC354/sijl/pwathiq"
 	_ "github.com/microsoft/go-mssqldb"
-	"google.golang.org/grpc"
 )
 
 type Sijl struct {
@@ -25,12 +23,11 @@ type Sijl struct {
 func (s *Sijl) Login(ctx context.Context, req *psijl.LoginRequest) (*psijl.LoginResponse, error) {
 	res := psijl.LoginResponse{}
 
-	userStmt, err := s.DB.Prepare(`SELECT COUNT(*)
-FROM SIJL.USERS
-WHERE username = @username`)
+	userStmt, err := s.DB.Prepare(stmts.CheckUser)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer userStmt.Close()
 	var c int
 	err = userStmt.QueryRow(sql.Named("username", req.Username)).Scan(&c)
 	if err != nil {
@@ -49,6 +46,7 @@ WHERE username = @username AND hash = HASHBYTES('SHA2_512', @password)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer passStmt.Close()
 
 	var valid int
 	err = passStmt.QueryRow(sql.Named("username", req.Username), sql.Named("password", req.Password)).Scan(&valid)
@@ -82,6 +80,7 @@ email,username,age) VALUES (HashBytes('SHA2_512', @hash ), @first_name , @last_n
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer stmt.Close()
 	q, err := stmt.Exec(sql.Named("hash", req.Password), sql.Named("first_name", req.FirstName),
 		sql.Named("last_name", req.LastName), sql.Named("email", req.Email),
 		sql.Named("username", req.Username), sql.Named("age", req.Age))
@@ -94,29 +93,17 @@ email,username,age) VALUES (HashBytes('SHA2_512', @hash ), @first_name , @last_n
 		log.Fatal(err)
 	}
 	res.Token = tkn.Token
+
+	cmd := exec.Command("python3", "/usr/src/sijl/imgs/gen.py", req.Username)
+	cmd.Dir = "/usr/src/sijl/imgs/"
+	_, err = cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
 	return &res, err
 }
 
-func StartSijlServer() error {
-	lis, err := net.Listen("tcp", ":8000")
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	grpcServer := grpc.NewServer()
-	qaida, err := mamar.ConnectDB("SIJL")
-	if err != nil {
-		log.Fatal(err)
-	}
-	wathq, conn, err := wathiq.NewWathiqStub()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-	sijl := &Sijl{DB: qaida, WathiqClient: wathq}
-	psijl.RegisterSijlServer(grpcServer, sijl)
-	err = grpcServer.Serve(lis)
-	return err
-}
-
+// TODO Handle used emails
 // TODO organize prepared statements
 // TODO is it a good idea to generate hashes in the database side instead of here?
+// TODO Replace fatal errors

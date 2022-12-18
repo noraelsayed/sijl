@@ -139,3 +139,125 @@ var Sijl_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "protobufs/sijl/sijl.proto",
 }
+
+// ProfileClient is the client API for Profile service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ProfileClient interface {
+	Get(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error)
+	Update(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error)
+}
+
+type profileClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewProfileClient(cc grpc.ClientConnInterface) ProfileClient {
+	return &profileClient{cc}
+}
+
+func (c *profileClient) Get(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error) {
+	out := new(ProfileResponse)
+	err := c.cc.Invoke(ctx, "/sijl.Profile/Get", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *profileClient) Update(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error) {
+	out := new(ProfileResponse)
+	err := c.cc.Invoke(ctx, "/sijl.Profile/Update", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ProfileServer is the server API for Profile service.
+// All implementations must embed UnimplementedProfileServer
+// for forward compatibility
+type ProfileServer interface {
+	Get(context.Context, *GetProfileRequest) (*ProfileResponse, error)
+	Update(context.Context, *UpdateProfileRequest) (*ProfileResponse, error)
+	mustEmbedUnimplementedProfileServer()
+}
+
+// UnimplementedProfileServer must be embedded to have forward compatible implementations.
+type UnimplementedProfileServer struct {
+}
+
+func (UnimplementedProfileServer) Get(context.Context, *GetProfileRequest) (*ProfileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedProfileServer) Update(context.Context, *UpdateProfileRequest) (*ProfileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedProfileServer) mustEmbedUnimplementedProfileServer() {}
+
+// UnsafeProfileServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ProfileServer will
+// result in compilation errors.
+type UnsafeProfileServer interface {
+	mustEmbedUnimplementedProfileServer()
+}
+
+func RegisterProfileServer(s grpc.ServiceRegistrar, srv ProfileServer) {
+	s.RegisterService(&Profile_ServiceDesc, srv)
+}
+
+func _Profile_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfileServer).Get(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sijl.Profile/Get",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfileServer).Get(ctx, req.(*GetProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Profile_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfileServer).Update(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sijl.Profile/Update",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfileServer).Update(ctx, req.(*UpdateProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Profile_ServiceDesc is the grpc.ServiceDesc for Profile service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Profile_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "sijl.Profile",
+	HandlerType: (*ProfileServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Get",
+			Handler:    _Profile_Get_Handler,
+		},
+		{
+			MethodName: "Update",
+			Handler:    _Profile_Update_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "protobufs/sijl/sijl.proto",
+}
