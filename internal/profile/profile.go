@@ -8,8 +8,8 @@ import (
 	"log"
 	"time"
 
+	. "github.com/CSC354/sijl/perrors"
 	"github.com/CSC354/sijl/pkg/stmts"
-	"github.com/CSC354/sijl/psijl"
 	. "github.com/CSC354/sijl/psijl"
 	"github.com/CSC354/sijl/pwathiq"
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -35,7 +35,7 @@ func (p *Profile) Get(ctx context.Context, req *GetProfileRequest) (*ProfileResp
 		log.Fatal(err)
 	}
 	if c == 0 {
-		res.Error = Err_NotFound
+		res.Error = int32(Errors_NotFound)
 		return &res, err
 	}
 	userStmt, err := p.DB.Prepare(`SELECT
@@ -93,7 +93,7 @@ func (p *Profile) Update(ctx context.Context, req *UpdateProfileRequest) (*Profi
 	}
 
 	if a.Id != req.Profile.Username {
-		res.Error = Err_SomethingWrong
+		res.Error = int32(Errors_SomethingWrong)
 		return &res, err
 	}
 
@@ -129,22 +129,22 @@ WHERE
 		log.Fatal(err)
 	}
 	res.Details = req.Profile
-	res.Error = Err_Ok
+	res.Error = int32(Errors_Ok)
 	return &res, err
 }
 
-func ValidateUpdateRequest(req *Details) psijl.Err {
+func ValidateUpdateRequest(req *Details) Errors {
 	if req.Age < 15 {
-		return Err_InvalidAge
+		return Errors_InvalidAge
 	}
 	err := validation.Validate(req.FirstName, validation.Required)
 	if err != nil {
-		return Err_InvalidFirstName
+		return Errors_InvalidFirstName
 	}
 
 	err = validation.Validate(req.LastName, validation.Required)
 	if err != nil {
-		return Err_InvalidLastName
+		return Errors_InvalidLastName
 	}
-	return Err_Ok
+	return Errors_Ok
 }

@@ -18,7 +18,7 @@ func StartSijlServer() error {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	sijlDb, err := mamar.ConnectDB("SIJL")
+	sijlDb, err := mamar.ConnectDB("QAIDA")
 	if err != nil {
 		log.Fatal(err)
 	}

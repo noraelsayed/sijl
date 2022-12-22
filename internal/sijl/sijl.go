@@ -6,6 +6,7 @@ import (
 	"log"
 	"os/exec"
 
+	"github.com/CSC354/sijl/perrors"
 	"github.com/CSC354/sijl/psijl"
 
 	"github.com/CSC354/sijl/pkg/stmts"
@@ -34,14 +35,14 @@ func (s *Sijl) Login(ctx context.Context, req *psijl.LoginRequest) (*psijl.Login
 		log.Fatal(err)
 	}
 	if c == 0 {
-		res.Error = psijl.Err_WrongUsername
+		res.Error = int32(perrors.Errors_WrongUsername)
 		return &res, err
 	}
 
 	passStmt, err := s.DB.Prepare(`
 SELECT COUNT(*)
 FROM SIJL.USERS
-WHERE username = @username AND hash = HASHBYTES('SHA2_512', @password)
+WHERE username = @username AND password_hash = HASHBYTES('SHA2_512', @password)
 `)
 	if err != nil {
 		log.Fatal(err)
@@ -62,7 +63,7 @@ WHERE username = @username AND hash = HASHBYTES('SHA2_512', @password)
 		res.Token = tkn.Token
 		return &res, nil
 	}
-	res.Error = psijl.Err_WrongPassword
+	res.Error = int32(perrors.Errors_WrongPassword)
 	return &res, err
 
 }
@@ -70,11 +71,11 @@ WHERE username = @username AND hash = HASHBYTES('SHA2_512', @password)
 // Register implements psijl.SijlServer
 func (s *Sijl) Register(ctx context.Context, req *psijl.NewUserRequest) (*psijl.LoginResponse, error) {
 	res := psijl.LoginResponse{}
-	res.Error = ValidateRegister(req, s.DB)
-	if res.Error != psijl.Err_Ok {
+	res.Error = int32(ValidateRegister(req, s.DB))
+	if perrors.Errors(res.Error) != perrors.Errors_Ok {
 		return &res, nil
 	}
-	stmt, err := s.DB.Prepare(`INSERT INTO SIJL.USERS(hash, first_name, last_name,
+	stmt, err := s.DB.Prepare(`INSERT INTO SIJL.USERS(password_hash, first_name, last_name,
 email,username,age) VALUES (HashBytes('SHA2_512', @hash ), @first_name , @last_name,
 @email , @username , @age )`)
 	if err != nil {
