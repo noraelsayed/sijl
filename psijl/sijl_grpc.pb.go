@@ -145,6 +145,7 @@ var Sijl_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ProfileClient interface {
 	Get(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error)
+	GetById(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error)
 	Update(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error)
 }
 
@@ -165,6 +166,15 @@ func (c *profileClient) Get(ctx context.Context, in *GetProfileRequest, opts ...
 	return out, nil
 }
 
+func (c *profileClient) GetById(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error) {
+	out := new(ProfileResponse)
+	err := c.cc.Invoke(ctx, "/sijl.Profile/GetById", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *profileClient) Update(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*ProfileResponse, error) {
 	out := new(ProfileResponse)
 	err := c.cc.Invoke(ctx, "/sijl.Profile/Update", in, out, opts...)
@@ -179,6 +189,7 @@ func (c *profileClient) Update(ctx context.Context, in *UpdateProfileRequest, op
 // for forward compatibility
 type ProfileServer interface {
 	Get(context.Context, *GetProfileRequest) (*ProfileResponse, error)
+	GetById(context.Context, *GetProfileRequest) (*ProfileResponse, error)
 	Update(context.Context, *UpdateProfileRequest) (*ProfileResponse, error)
 	mustEmbedUnimplementedProfileServer()
 }
@@ -189,6 +200,9 @@ type UnimplementedProfileServer struct {
 
 func (UnimplementedProfileServer) Get(context.Context, *GetProfileRequest) (*ProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedProfileServer) GetById(context.Context, *GetProfileRequest) (*ProfileResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetById not implemented")
 }
 func (UnimplementedProfileServer) Update(context.Context, *UpdateProfileRequest) (*ProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
@@ -224,6 +238,24 @@ func _Profile_Get_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Profile_GetById_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfileServer).GetById(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sijl.Profile/GetById",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfileServer).GetById(ctx, req.(*GetProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Profile_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateProfileRequest)
 	if err := dec(in); err != nil {
@@ -252,6 +284,10 @@ var Profile_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Get",
 			Handler:    _Profile_Get_Handler,
+		},
+		{
+			MethodName: "GetById",
+			Handler:    _Profile_GetById_Handler,
 		},
 		{
 			MethodName: "Update",

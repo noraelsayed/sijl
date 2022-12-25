@@ -21,6 +21,70 @@ type Profile struct {
 	pwathiq.WathiqClient
 }
 
+func (p *Profile) GetById(ctx context.Context, req *GetProfileRequest) (*ProfileResponse, error) {
+
+	res := ProfileResponse{Details: &Details{}}
+	checkStmt, err := p.DB.Prepare(stmts.CheckUser)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer checkStmt.Close()
+	var c int
+	err = checkStmt.QueryRow(sql.Named("username", req.Username)).Scan(&c)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if c == 0 {
+		res.Error = int32(Errors_NotFound)
+		return &res, err
+	}
+	userStmt, err := p.DB.Prepare(`SELECT
+  first_name,
+  last_name,
+  username,
+  github,
+  home,
+  about,
+  twitter,
+  date_joined,
+  age
+FROM
+  SIJL.USERS
+WHERE
+  id = @username
+`)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var date time.Time
+	defer userStmt.Close()
+
+	var (
+		github  sql.NullString
+		home    sql.NullString
+		about   sql.NullString
+		twitter sql.NullString
+	)
+
+	err = userStmt.QueryRow(sql.Named("username", req.Username)).
+		Scan(&res.Details.FirstName, &res.Details.LastName, &res.Details.Username,
+			&github, &home, &about, &twitter, &date, &res.Details.Age)
+	if err != nil {
+		log.Fatal(err)
+	}
+	res.Details.Github, res.Details.Home, res.Details.About, res.Details.Twitter =
+		github.String, home.String, about.String, twitter.String
+
+	res.Details.Joined = date.Unix()
+	res.Details.Avatar, err = ioutil.ReadFile(fmt.Sprintf("/usr/src/sijl/imgs/%s.png", req.Username))
+	if err != nil {
+		log.Fatal(fmt.Sprintf("/usr/src/sijl/imgs/%s.png", req.Username), err)
+	}
+
+	return &res, err
+
+}
+
 // Get implements psijl.ProfileServer
 func (p *Profile) Get(ctx context.Context, req *GetProfileRequest) (*ProfileResponse, error) {
 	res := ProfileResponse{Details: &Details{}}
